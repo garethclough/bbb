@@ -1,0 +1,13 @@
+<h3>Our Flask Buttons<h3/>
+<form method="post" action="/">
+	<input type="submit" value="putON" name="putON"/>
+	<input type="submit" value="putOFF" name="putOFF" />
+	<input type="submit" value="flash" name="flash" />
+</form>
+<form method="POST">
+    <input type="range" name="brightness"
+           min="0" max="100" value="{{ brightness }}"
+           oninput="this.nextElementSibling.value=this.value">
+    <output>{{ brightness }}</output>
+    <button type="submit" value="brightness">Set brightness</button>
+</form>
