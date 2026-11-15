@@ -1,13 +1,29 @@
-<h3>Our Flask Buttons<h3/>
-<form method="post" action="/">
-	<input type="submit" value="putON" name="putON"/>
-	<input type="submit" value="putOFF" name="putOFF" />
-	<input type="submit" value="flash" name="flash" />
-</form>
-<form method="POST">
-    <input type="range" name="brightness"
-           min="0" max="100" value="{{ brightness }}"
-           oninput="this.nextElementSibling.value=this.value">
-    <output>{{ brightness }}</output>
-    <button type="submit" value="brightness">Set brightness</button>
-</form>
+
+<h3>Light Controls</h3>
+{% for led in leds %}
+    <h4>LED {{ led.name }}</h4>
+
+    <form method="POST" action="/">
+        <input type="hidden" name="led_id" value="{{ led.id }}">
+        <input type="submit" value="ON" name="action">
+        <input type="submit" value="OFF" name="action">
+        <input type="submit" value="FLASH" name="action">
+
+        <br><br>
+
+        <input type="range"
+               name="brightness"
+               min="0"
+               max="100"
+               value="{{ led.brightness }}"
+               oninput="this.nextElementSibling.value=this.value">
+
+        <output>{{ led.brightness }}</output>
+
+        <button type="submit" name="action" value="brightness">
+            Set brightness
+        </button>
+    </form>
+
+    <hr>
+{% endfor %}
