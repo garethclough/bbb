@@ -27,3 +27,33 @@
 
     <hr>
 {% endfor %}
+
+<h3>Distance Sensor</h3>
+<p>Distance: <strong id="distance">--</strong></p>
+<p id="distance-error" style="color: #b00;"></p>
+
+<script>
+    const distanceEl = document.getElementById("distance");
+    const errorEl = document.getElementById("distance-error");
+
+    async function updateDistance() {
+        try {
+            const response = await fetch("/sensor");
+            const data = await response.json();
+            if (data.ok) {
+                distanceEl.textContent = data.distance_mm + " mm";
+                errorEl.textContent = "";
+            } else {
+                distanceEl.textContent = "--";
+                errorEl.textContent = data.error || "Reading failed";
+            }
+        } catch (e) {
+            distanceEl.textContent = "--";
+            errorEl.textContent = "Cannot reach server";
+        }
+        // Schedule the next poll only after this one finishes, so slow reads don't pile up
+        setTimeout(updateDistance, 1000);
+    }
+
+    updateDistance();
+</script>

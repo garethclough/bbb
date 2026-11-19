@@ -1,6 +1,7 @@
 from gc import enable
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
+from vl6180x_bbb import VL6180X, RANGE_ERRORS
 import Adafruit_BBIO.GPIO as GPIO
 import Adafruit_BBIO.PWM as PWM
 import time
@@ -70,6 +71,49 @@ class LED:
         duty = int(PERIOD * self.brightness / 100)
         (self.pwm_path / "duty_cycle").write_text(str(duty))
 
+class DistanceSensor:
+    """VL6180X time-of-flight distance sensor on I2C."""
+
+    def __init__(self, id, name, bus_num=2):
+        self.id = id
+        self.name = name
+        self.bus_num = bus_num
+        self.sensor = None
+        self.lock = threading.Lock()  # Flask may serve requests concurrently
+
+    def connect(self):
+        if self.sensor is None:
+            sensor = VL6180X(self.bus_num)
+            try:
+                sensor.init()
+            except Exception:
+                sensor.close()
+                raise
+            self.sensor = sensor
+
+    def read(self):
+        with self.lock:
+            try:
+                self.connect()
+                dist, status = self.sensor.range_mm()
+            except Exception as e:
+                # Drop the connection so the next read retries from scratch
+                if self.sensor is not None:
+                    self.sensor.close()
+                    self.sensor = None
+                return {"id": self.id, "name": self.name, "ok": False,
+                        "distance_mm": None, "error": str(e)}, 503
+
+        result = {
+            "id": self.id,
+            "name": self.name,
+            "ok": status == 0,
+            "distance_mm": dist if status == 0 else None,
+        }
+        if status != 0:
+            result["error"] = RANGE_ERRORS.get(status, f"status {status}")
+        return result, 200
+
 app = Flask(__name__)
 threadRunning = False
 
@@ -80,6 +124,8 @@ led2 = LED("led2", "LED 2", PWM_PATH_2, LED_PIN_2)
 led3 = LED("led3", "LED 3", PWM_PATH_3, LED_PIN_3)
 
 leds = [led1, led2, led3]
+
+distance_sensor = DistanceSensor("vl6180x", "Distance Sensor", bus_num=2)
 
 def loadSettings():
     try:
@@ -122,6 +168,11 @@ def mainThread(led):
         time.sleep(0.5)
         led.turnOff()
         time.sleep(0.5)
+
+@app.route("/sensor", methods=['GET'])
+def handleSensor():
+    reading, status_code = distance_sensor.read()
+    return jsonify(reading), status_code
 
 @app.route("/",methods=['GET','POST'])
 def handleRoute():

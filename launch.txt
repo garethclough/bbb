@@ -1,1 +1,2 @@
-python -m flask --app internalLEDButton run --host=0.0.0.0
+python -m flask --app control-house run --host=0.0.0.0
+ssh debian@192.168.7.2
